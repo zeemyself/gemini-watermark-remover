@@ -3,7 +3,7 @@ function isGoogleusercontentHost(hostname) {
 }
 
 function hasGeminiAssetPath(pathname) {
-  return pathname.includes('/rd-gg/') || pathname.includes('/rd-gg-dl/');
+  return /^\/rd-[^/]+\//.test(pathname);
 }
 
 export function isGeminiGeneratedAssetUrl(url) {
@@ -22,12 +22,20 @@ export function normalizeGoogleusercontentImageUrl(url) {
   try {
     const parsed = new URL(url);
     const path = parsed.pathname;
+    const tailTransform = path.match(/=([^/?#=]+)$/);
+    if (tailTransform && /^(?:s|w|h)\d+/i.test(tailTransform[1])) {
+      const keepDownloadFlag = tailTransform[1].endsWith('-d') ? '-d' : '';
+      parsed.pathname = `${path.slice(0, tailTransform.index)}=s0${keepDownloadFlag}`;
+      return parsed.toString();
+    }
+
     const sizeTransformAtTail = /=s\d+([^/]*)$/;
     if (sizeTransformAtTail.test(path)) {
       parsed.pathname = path.replace(sizeTransformAtTail, '=s0$1');
-    } else {
-      parsed.pathname = `${path}=s0`;
+      return parsed.toString();
     }
+
+    parsed.pathname = `${path}=s0`;
     return parsed.toString();
   } catch {
     return url;

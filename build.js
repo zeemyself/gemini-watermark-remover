@@ -32,8 +32,8 @@ const jsBanner = `/*!
 const userscriptBanner = `// ==UserScript==
 // @name         Gemini NanoBanana Watermark Remover
 // @name:zh-CN   Gemini NanoBanana 图片水印移除
-// @namespace    https://github.com/journey-ad
-// @version      0.1.6
+// @namespace    https://github.com/GargantuaX
+// @version      0.1.8
 // @description  Automatically removes watermarks from Gemini AI generated images
 // @description:zh-CN 自动移除 Gemini AI 生成图像中的水印
 // @icon         https://www.google.com/s2/favicons?domain=gemini.google.com
@@ -42,6 +42,7 @@ const userscriptBanner = `// ==UserScript==
 // @match        https://gemini.google.com/*
 // @connect      googleusercontent.com
 // @grant        GM_xmlhttpRequest
+// @grant        unsafeWindow
 // @run-at       document-end
 // ==/UserScript==
 `;
@@ -201,7 +202,8 @@ const userscriptCtx = await esbuild.context({
   banner: { js: userscriptBanner },
   minify: false,
   define: {
-    __US_WORKER_CODE__: JSON.stringify(userscriptWorkerCode)
+    __US_WORKER_CODE__: JSON.stringify(userscriptWorkerCode),
+    __US_INLINE_WORKER_ENABLED__: 'false'
   }
 });
 
@@ -210,7 +212,7 @@ console.log(`🚀 Starting build process... [${isProd ? 'PRODUCTION' : 'DEVELOPM
 if (existsSync('dist')) rmSync('dist', { recursive: true });
 mkdirSync('dist/userscript', { recursive: true });
 mkdirSync('dist/workers', { recursive: true });
-  
+
 if (isProd) {
   await Promise.all([websiteCtx.rebuild(), workerCtx.rebuild(), userscriptCtx.rebuild()]);
   console.log('✅ Build complete!');

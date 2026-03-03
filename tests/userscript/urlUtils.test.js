@@ -24,6 +24,12 @@ test('normalizeGoogleusercontentImageUrl should keep -d flag when present', () =
     assert.equal(out, 'https://lh3.googleusercontent.com/rd-gg-dl/abc123=s0-d');
 });
 
+test('normalizeGoogleusercontentImageUrl should replace width-height transform at tail', () => {
+    const input = 'https://lh3.googleusercontent.com/rd-gg/abc123=w2048-h2048';
+    const out = normalizeGoogleusercontentImageUrl(input);
+    assert.equal(out, 'https://lh3.googleusercontent.com/rd-gg/abc123=s0');
+});
+
 test('normalizeGoogleusercontentImageUrl should append transform when missing', () => {
     const input = 'https://lh3.googleusercontent.com/rd-gg/abc123';
     const out = normalizeGoogleusercontentImageUrl(input);
@@ -45,6 +51,7 @@ test('normalizeGoogleusercontentImageUrl should keep non-googleusercontent url u
 test('isGeminiGeneratedAssetUrl should only match Gemini asset url', () => {
     assert.equal(isGeminiGeneratedAssetUrl('https://lh3.googleusercontent.com/rd-gg/abc=s1024'), true);
     assert.equal(isGeminiGeneratedAssetUrl('https://lh3.googleusercontent.com/rd-gg-dl/abc=s1024-d'), true);
+    assert.equal(isGeminiGeneratedAssetUrl('https://lh3.googleusercontent.com/rd-new-path/abc=s1024-d'), true);
     assert.equal(isGeminiGeneratedAssetUrl('https://lh3.googleusercontent.com/abc=s1024'), false);
     assert.equal(isGeminiGeneratedAssetUrl('https://example.com/rd-gg/abc=s1024'), false);
 });

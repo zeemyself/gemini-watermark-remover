@@ -51,7 +51,7 @@
 > 作者对任何形式的数据丢失、图像损坏或非预期的修改结果不承担法律责任。使用本工具即代表您已了解并接受上述风险。
 
 > [!NOTE]
-> 另请注意：使用此工具需禁用 Canvas 指纹防护扩展（如 Canvas Fingerprint Defender），否则可能会导致处理结果错误。 https://github.com/journey-ad/gemini-watermark-remover/issues/3
+> 另请注意：使用此工具需禁用 Canvas 指纹防护扩展（如 Canvas Fingerprint Defender），否则可能会导致处理结果错误。 https://github.com/GargantuaX/gemini-watermark-remover/issues/3
 
 ## 使用方法
 
