@@ -7,4 +7,6 @@ test('userscript metadata should match gemini.google.com and business.gemini.goo
 
     assert.match(buildScript, /\/\/ @match\s+https:\/\/gemini\.google\.com\/\*/);
     assert.match(buildScript, /\/\/ @match\s+https:\/\/business\.gemini\.google\/\*/);
+    assert.match(buildScript, /\/\/ @grant\s+unsafeWindow/);
+    assert.match(buildScript, /\/\/ @grant\s+GM_xmlhttpRequest/);
 });

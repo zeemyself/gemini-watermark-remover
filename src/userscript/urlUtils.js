@@ -3,7 +3,7 @@ function isGoogleusercontentHost(hostname) {
 }
 
 function hasGeminiAssetPath(pathname) {
-  return /^\/rd-[^/]+\//.test(pathname);
+  return /^\/(?:rd-[^/]+|gg)\//.test(pathname);
 }
 
 export function isGeminiGeneratedAssetUrl(url) {
@@ -21,15 +21,18 @@ export function normalizeGoogleusercontentImageUrl(url) {
 
   try {
     const parsed = new URL(url);
+    if (!hasGeminiAssetPath(parsed.pathname)) {
+      return url;
+    }
+
     const path = parsed.pathname;
-    const tailTransform = path.match(/=([^/?#=]+)$/);
-    if (tailTransform && /^(?:s|w|h)\d+/i.test(tailTransform[1])) {
-      const keepDownloadFlag = tailTransform[1].endsWith('-d') ? '-d' : '';
-      parsed.pathname = `${path.slice(0, tailTransform.index)}=s0${keepDownloadFlag}`;
+    const dimensionPairAtTail = /=w\d+-h\d+([^/]*)$/i;
+    if (dimensionPairAtTail.test(path)) {
+      parsed.pathname = path.replace(dimensionPairAtTail, '=s0$1');
       return parsed.toString();
     }
 
-    const sizeTransformAtTail = /=s\d+([^/]*)$/;
+    const sizeTransformAtTail = /=(?:s|w|h)\d+([^/]*)$/i;
     if (sizeTransformAtTail.test(path)) {
       parsed.pathname = path.replace(sizeTransformAtTail, '=s0$1');
       return parsed.toString();

@@ -43,6 +43,9 @@ jobs:
       - name: SDK publish smoke
         run: pnpm test:sdk-smoke
 
+      - name: Extension smoke
+        run: pnpm test:extension-smoke
+
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 

@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://pilio.ai/gemini-watermark-remover"><img src="https://img.shields.io/badge/🛠️_在线工具-pilio.ai-blue?style=for-the-badge" alt="在线工具"></a>&nbsp;
+  <img src="https://img.shields.io/badge/🧩_Chrome_插件-本地构建-orange?style=for-the-badge" alt="Chrome 插件">&nbsp;
   <a href="https://gemini.pilio.ai/userscript/gemini-watermark-remover.user.js"><img src="https://img.shields.io/badge/🐒_油猴脚本-安装-green?style=for-the-badge" alt="油猴脚本"></a>&nbsp;
   <a href="https://gemini.pilio.ai"><img src="https://img.shields.io/badge/🧪_开发者预览-gemini.pilio.ai-gray?style=for-the-badge" alt="开发者预览"></a>
 </p>
@@ -77,7 +78,67 @@
 1. 安装油猴插件（如 Tampermonkey 或 Greasemonkey）
 2. 打开 [gemini-watermark-remover.user.js](https://gemini.pilio.ai/userscript/gemini-watermark-remover.user.js)
 3. 脚本会自动安装到浏览器中
-4. Gemini 对话页面点击复制或者下载图片时，会自动移除水印
+4. 打开 Gemini 对话页面
+5. 页面里可处理的 Gemini 预览图会在处理后直接替换显示
+6. 点击原生“复制图片”或“下载图片”时，脚本也会在下载流里自动返回去水印结果
+
+当前油猴模式的边界是：
+
+- 不注入页面按钮
+- 不提供弹窗 UI 或批量操作入口
+- 当源图可获取时，会同时处理页面预览图和原生复制/下载链路
+
+### Chrome 插件（开发版）
+
+如果你更在意权限边界和隐私隔离，可以直接加载 Chrome 插件开发版：
+
+1. 运行 `pnpm build`
+2. 打开 Chrome 或 Edge 的扩展管理页
+3. 开启“开发者模式”
+4. 选择“加载已解压缩的扩展程序”
+5. 选中项目构建产物目录 `dist/extension`
+
+当前插件版已支持：
+
+- 页面内逐图 `切换 / 复制 / 下载`
+- 默认显示去水印图
+- 进入视口后才开始处理
+- 弹窗批量下载去水印后图片
+- 切换“显示 Gemini 原生按钮”
+
+调试建议：
+
+- 每次修改后重新运行 `pnpm build`
+- 回到扩展管理页点击刷新
+- 重新打开 Gemini 页面进行验证
+
+如果你想把“重载扩展 + 刷新页面 + 抓错误”变成一条可重复的调试链路，建议分成两条：
+
+```bash
+pnpm debug:auto
+pnpm debug:manual
+```
+
+- `pnpm debug:auto`
+  - 使用 Playwright Chromium
+  - 自动加载 `dist/extension`
+  - 适合自动化回归、抓日志、导出 `.chrome-debug/last-debug-state.json`
+- `pnpm debug:manual`
+  - 使用本机 Chrome + 独立 profile
+  - 适合登录 Google、手工验证真实页面
+  - 启动后需手动去 `chrome://extensions` 加载 `dist/extension`
+
+这是因为 Chrome 137+ 的正式版浏览器已经不再支持通过命令行 `--load-extension` 自动装载扩展。
+
+两种模式下，调试终端常用命令一致：
+
+- `r` 刷新当前页面
+- `d` 导出扩展调试状态到 `.chrome-debug/last-debug-state.json`
+- `b` 重新构建并重启调试浏览器
+- `s` 保存当前页面截图
+- `o <url>` 打开指定页面
+
+如果你只是想保留旧命令，`pnpm debug:chrome` 现在等价于 `pnpm debug:auto`。
 
 ### 开发者预览
 
@@ -196,6 +257,9 @@ $$original = \frac{watermarked - \alpha \cdot logo}{1 - \alpha}$$
 ```bash
 # 运行全部测试
 pnpm test
+
+# 只运行 Chrome 插件 smoke test
+pnpm test:extension-smoke
 ```
 
 回归测试会使用 `src/assets/samples/` 下的源样本。

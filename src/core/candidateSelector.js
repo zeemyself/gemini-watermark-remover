@@ -359,9 +359,9 @@ export function selectInitialCandidate({
             baselineNearBlackRatio: calculateNearBlackRatio(originalImageData, seed.position)
         }))
         .filter(Boolean);
-    const standardTrial = standardTrials.find((candidate) => candidate.source === 'standard') ?? standardTrials[0];
-    const standardSpatialScore = standardTrial.originalSpatialScore;
-    const standardGradientScore = standardTrial.originalGradientScore;
+    const standardTrial = standardTrials.find((candidate) => candidate.source === 'standard') ?? standardTrials[0] ?? null;
+    const standardSpatialScore = standardTrial?.originalSpatialScore ?? null;
+    const standardGradientScore = standardTrial?.originalGradientScore ?? null;
     const hasReliableStandardMatch = hasReliableStandardWatermarkSignal({
         spatialScore: standardSpatialScore,
         gradientScore: standardGradientScore
