@@ -103,3 +103,11 @@ test('standalone sample asset notes should not remain when they are not part of 
     'expected docs/tests to be removed once stale test notes are deleted'
   );
 });
+
+test('local agent rules should not be committed into the project tree', () => {
+  assert.equal(
+    existsSync(new URL('../../.agents/rules/locale.md', import.meta.url)),
+    false,
+    'expected .agents/rules/locale.md to stay out of the repository'
+  );
+});
