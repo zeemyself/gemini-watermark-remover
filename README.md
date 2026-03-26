@@ -4,6 +4,11 @@
 
 An open-source tool to **remove Gemini watermarks** from AI-generated images — losslessly and precisely. Built with pure JavaScript, the engine uses a mathematically exact **Reverse Alpha Blending** algorithm instead of unpredictable AI inpainting, delivering pixel-perfect Gemini watermark removal every time.
 
+# zeemyself Forked Changed
+- Only userscript
+- Based on version 0.1.6 (That currently working best for me)
+- Add image cache
+
 > **🚀 Looking for an easy Gemini watermark removal tool? Try it now: [pilio.ai/gemini-watermark-remover](https://pilio.ai/gemini-watermark-remover)** — free, no install, works directly in your browser.
 
 <p align="center">
