@@ -13,6 +13,7 @@
 // @grant        GM_xmlhttpRequest
 // @run-at       document-end
 // @updateURL    https://raw.githubusercontent.com/zeemyself/gemini-watermark-remover/refs/heads/main/userscript.user.js
+// @downloadURL  https://raw.githubusercontent.com/zeemyself/gemini-watermark-remover/refs/heads/main/userscript.user.js
 // ==/UserScript==
 
 (() => {
