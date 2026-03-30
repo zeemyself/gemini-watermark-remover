@@ -252,6 +252,11 @@
   };
   var setupMutationObserver = () => {
     new MutationObserver(debounce(processAllImages, 100)).observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        processAllImages();
+      }
+    });
     console.log("[Gemini Watermark Remover] MutationObserver active");
   };
   async function processImageBlob(blob) {
