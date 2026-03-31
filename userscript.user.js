@@ -273,11 +273,28 @@
     console.log("[Gemini Watermark Remover] MutationObserver active");
   };
   async function processImageBlob(blob) {
-    const blobUrl = URL.createObjectURL(blob);
-    const img = await loadImage(blobUrl);
-    const canvas = await engine.removeWatermarkFromImage(img);
-    URL.revokeObjectURL(blobUrl);
-    return canvasToBlob(canvas);
+    // console.log("[Gemini Watermark Remover] processImageBlob called with blob:", blob);
+    try {
+      const blobUrl = URL.createObjectURL(blob);
+      // console.log("[Gemini Watermark Remover] processImageBlob object URL created:", blobUrl);
+      
+      const img = await loadImage(blobUrl);
+      // console.log("[Gemini Watermark Remover] processImageBlob image loaded successfully, dimension:", img.width, "x", img.height);
+      
+      const canvas = await engine.removeWatermarkFromImage(img);
+      // console.log("[Gemini Watermark Remover] processImageBlob watermark removed, canvas generated:");
+      
+      URL.revokeObjectURL(blobUrl);
+      // console.log("[Gemini Watermark Remover] processImageBlob object URL revoked");
+      
+      const resultBlob = await canvasToBlob(canvas);
+      // console.log("[Gemini Watermark Remover] processImageBlob canvas converted back to blob successfully:", resultBlob);
+      
+      return resultBlob;
+    } catch (error) {
+      console.error("[Gemini Watermark Remover] processImageBlob error:", error);
+      throw error;
+    }
   }
   var GEMINI_URL_PATTERN = /^https:\/\/lh3\.googleusercontent\.com\/rd-gg(?:-dl)?\/.+=s(?!0-d\?).*/;
   var { fetch: origFetch } = unsafeWindow;
@@ -302,12 +319,13 @@
 
       const response = await origFetch(...args);
       console.log('[Gemini Watermark Remover] Response status', response.status, response);
-      console.image(await response.blob());
+
       if (!engine || !response.ok) return response;
 
       try {
         const task = (async () => {
-             const blob = await response.blob();
+             // Create another clone before getting the blob for processing
+             const blob = await response.clone().blob();
              return processImageBlob(blob);
         })();
 
@@ -315,13 +333,18 @@
         const processedBlob = await task;
         const processedBlobUrl = URL.createObjectURL(processedBlob);
         
-        console.log(`[Gemini Watermark Remover] Processing image via fetch: ${shortenUrlForLog(origUrl)} -> ${shortenUrlForLog(processedBlobUrl)}`);
+        console.log(`[Gemini Watermark Remover] Processing image via fetch: ${shortenUrlForLog(origUrl)} ->`, processedBlob);
+        console.log(`[Gemini Watermark Remover] Processed blob URL: ${processedBlobUrl}`);
 
-        return new Response(processedBlob, {
+        const finalResponse =  new Response(processedBlob, {
           status: response.status,
           statusText: response.statusText,
           headers: response.headers
         });
+        // Object.defineProperty(finalResponse, 'url', { value: processedBlobUrl})
+        console.log('[Gemini Watermark Remover] Final response', finalResponse);
+        return finalResponse
+        
       } catch (error) {
         console.warn("[Gemini Watermark Remover] Processing failed, will retry on next request:", error);
         processedImageCache.delete(origUrl);
