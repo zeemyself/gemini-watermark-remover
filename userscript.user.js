@@ -235,11 +235,11 @@
 
       imgElement.src = URL.createObjectURL(processedBlob);
       imgElement.dataset.watermarkProcessed = "true";
-      console.log("[Gemini Watermark Remover] Processed image");
+      console.log("[Gemini Watermark Remover] Processed image", originalSrc);
     } catch (error) {
-      console.warn("[Gemini Watermark Remover] Failed to process image:", error);
-      imgElement.dataset.watermarkProcessed = "failed";
+      console.warn("[Gemini Watermark Remover] Failed to process image, will retry on next scan:", error);
       imgElement.src = originalSrc;
+      delete imgElement.dataset.watermarkProcessed;
       processedImageCache.delete(normalizedUrl);
     } finally {
       processingQueue.delete(imgElement);
@@ -258,6 +258,7 @@
         processAllImages();
       }
     });
+    window.addEventListener("focus", processAllImages);
     console.log("[Gemini Watermark Remover] MutationObserver active");
   };
   async function processImageBlob(blob) {
@@ -289,6 +290,8 @@
       else if (args[0]?.url) args[0].url = origUrl;
 
       const response = await origFetch(...args);
+      console.log('[Gemini Watermark Remover] Response status', response.status, response);
+      console.image(await response.blob());
       if (!engine || !response.ok) return response;
 
       try {
@@ -306,7 +309,7 @@
           headers: response.headers
         });
       } catch (error) {
-        console.warn("[Gemini Watermark Remover] Processing failed:", error);
+        console.warn("[Gemini Watermark Remover] Processing failed, will retry on next request:", error);
         processedImageCache.delete(origUrl);
         return response;
       }
