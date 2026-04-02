@@ -296,9 +296,10 @@
       throw error;
     }
   }
-  var GEMINI_URL_PATTERN = /^https:\/\/lh3\.googleusercontent\.com\/rd-gg(?:-dl)?\/.+=s(?!0-d\?).*/;
+  var GEMINI_URL_PATTERN = /^https:\/\/lh3\.googleusercontent\.com\/(?:rd-)?gg(?:-dl)?\/.+=s(?!0-d\?).*/;
   var { fetch: origFetch } = unsafeWindow;
   unsafeWindow.fetch = async (...args) => {
+    console.log(`[Gemini Watermark Remover] Fetching: ${args[0]}`);
     const url = typeof args[0] === "string" ? args[0] : args[0]?.url;
     if (GEMINI_URL_PATTERN.test(url)) {
       console.log(`[Gemini Watermark Remover] Intercepting: ${shortenUrlForLog(url)}`);
