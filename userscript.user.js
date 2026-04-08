@@ -2,7 +2,7 @@
 // @name         Gemini NanoBanana Watermark Remover
 // @name:zh-CN   Gemini NanoBanana 图片水印移除
 // @namespace    https://github.com/zeemyself/gemini-watermark-remover
-// @version      0.1.6
+// @version      0.1.7
 // @description  Automatically removes watermarks from Gemini AI generated images
 // @description:zh-CN 自动移除 Gemini AI 生成图像中的水印
 // @icon         https://www.google.com/s2/favicons?domain=gemini.google.com
@@ -219,7 +219,6 @@
 
       if (processedImageCache.has(normalizedUrl)) {
         processedBlob = await processedImageCache.get(normalizedUrl);
-        console.log("[Gemini Watermark Remover] Used cached image");
       } else {
         imgElement.src = "";
         const task = (async () => {
@@ -245,7 +244,6 @@
 
       imgElement.src = processedBlobUrl
       imgElement.dataset.watermarkProcessed = "true";
-      console.log(`[Gemini Watermark Remover] Processed image: ${shortenUrlForLog(originalSrc)} -> ${shortenUrlForLog(processedBlobUrl)}`);
     } catch (error) {
       console.warn("[Gemini Watermark Remover] Failed to process image, will retry on next scan:", error);
       imgElement.src = originalSrc;
@@ -258,8 +256,6 @@
   var processAllImages = () => {
     const images = findGeminiImages();
     if (images.length === 0) return;
-    console.log(`[Gemini Watermark Remover] Found ${images.length} images to process`);
-    console.log(`[Gemini Watermark Remover] Images: ${images}`);
     images.forEach(processImage);
   };
   var setupMutationObserver = () => {
@@ -270,27 +266,15 @@
       }
     });
     window.addEventListener("focus", processAllImages);
-    console.log("[Gemini Watermark Remover] MutationObserver active");
+
   };
   async function processImageBlob(blob) {
-    // console.log("[Gemini Watermark Remover] processImageBlob called with blob:", blob);
     try {
       const blobUrl = URL.createObjectURL(blob);
-      // console.log("[Gemini Watermark Remover] processImageBlob object URL created:", blobUrl);
-      
       const img = await loadImage(blobUrl);
-      // console.log("[Gemini Watermark Remover] processImageBlob image loaded successfully, dimension:", img.width, "x", img.height);
-      
       const canvas = await engine.removeWatermarkFromImage(img);
-      // console.log("[Gemini Watermark Remover] processImageBlob watermark removed, canvas generated:");
-      
       URL.revokeObjectURL(blobUrl);
-      // console.log("[Gemini Watermark Remover] processImageBlob object URL revoked");
-      
-      const resultBlob = await canvasToBlob(canvas);
-      // console.log("[Gemini Watermark Remover] processImageBlob canvas converted back to blob successfully:", resultBlob);
-      
-      return resultBlob;
+      return await canvasToBlob(canvas);
     } catch (error) {
       console.error("[Gemini Watermark Remover] processImageBlob error:", error);
       throw error;
@@ -299,16 +283,13 @@
   var GEMINI_URL_PATTERN = /^https:\/\/lh3\.googleusercontent\.com\/(?:rd-)?gg(?:-dl)?\/.+=s(?!0-d\?).*/;
   var { fetch: origFetch } = unsafeWindow;
   unsafeWindow.fetch = async (...args) => {
-    console.log(`[Gemini Watermark Remover] Fetching: ${args[0]}`);
     const url = typeof args[0] === "string" ? args[0] : args[0]?.url;
     if (GEMINI_URL_PATTERN.test(url)) {
-      console.log(`[Gemini Watermark Remover] Intercepting: ${shortenUrlForLog(url)}`);
       const origUrl = replaceWithNormalSize(url);
 
       if (processedImageCache.has(origUrl)) {
         try {
             const blob = await processedImageCache.get(origUrl);
-            console.log("[Gemini Watermark Remover] Serving cached blob for intercepted request");
             return new Response(blob, { status: 200, statusText: "OK" });
         } catch (e) {
             processedImageCache.delete(origUrl);
@@ -319,7 +300,6 @@
       else if (args[0]?.url) args[0].url = origUrl;
 
       const response = await origFetch(...args);
-      console.log('[Gemini Watermark Remover] Response status', response.status, response);
 
       if (!engine || !response.ok) return response;
 
@@ -334,17 +314,13 @@
         const processedBlob = await task;
         const processedBlobUrl = URL.createObjectURL(processedBlob);
         
-        console.log(`[Gemini Watermark Remover] Processing image via fetch: ${shortenUrlForLog(origUrl)} ->`, processedBlob);
-        console.log(`[Gemini Watermark Remover] Processed blob URL: ${processedBlobUrl}`);
+        console.log(`[Gemini Watermark Remover] Processed image via fetch: ${shortenUrlForLog(origUrl)}`);
 
-        const finalResponse =  new Response(processedBlob, {
+        return new Response(processedBlob, {
           status: response.status,
           statusText: response.statusText,
           headers: response.headers
         });
-        // Object.defineProperty(finalResponse, 'url', { value: processedBlobUrl})
-        console.log('[Gemini Watermark Remover] Final response', finalResponse);
-        return finalResponse
         
       } catch (error) {
         console.warn("[Gemini Watermark Remover] Processing failed, will retry on next request:", error);
