@@ -198,6 +198,15 @@
   var replaceWithNormalSize = (src) => {
     return src.replace(/=s\d+(?=[-?#]|$)/, "=s0");
   };
+  var shortenUrlForLog = (src) => {
+    try {
+      const url = new URL(src);
+      const id = url.pathname.split("/").pop().split(/[=?#]/)[0];
+      return id.length > 13 ? `${id.slice(0, 5)}...${id.slice(-5)}` : id;
+    } catch (e) {
+      return src.length > 13 ? `${src.slice(0, 5)}...${src.slice(-5)}` : src;
+    }
+  }
   async function processImage(imgElement) {
     if (!engine || processingQueue.has(imgElement)) return;
     processingQueue.add(imgElement);
@@ -232,14 +241,15 @@
             throw e;
         }
       }
+      const processedBlobUrl = URL.createObjectURL(processedBlob);
 
-      imgElement.src = URL.createObjectURL(processedBlob);
+      imgElement.src = processedBlobUrl
       imgElement.dataset.watermarkProcessed = "true";
-      console.log("[Gemini Watermark Remover] Processed image");
+      console.log(`[Gemini Watermark Remover] Processed image: ${shortenUrlForLog(originalSrc)} -> ${shortenUrlForLog(processedBlobUrl)}`);
     } catch (error) {
-      console.warn("[Gemini Watermark Remover] Failed to process image:", error);
-      imgElement.dataset.watermarkProcessed = "failed";
+      console.warn("[Gemini Watermark Remover] Failed to process image, will retry on next scan:", error);
       imgElement.src = originalSrc;
+      delete imgElement.dataset.watermarkProcessed;
       processedImageCache.delete(normalizedUrl);
     } finally {
       processingQueue.delete(imgElement);
@@ -249,6 +259,7 @@
     const images = findGeminiImages();
     if (images.length === 0) return;
     console.log(`[Gemini Watermark Remover] Found ${images.length} images to process`);
+    console.log(`[Gemini Watermark Remover] Images: ${images}`);
     images.forEach(processImage);
   };
   var setupMutationObserver = () => {
@@ -258,21 +269,40 @@
         processAllImages();
       }
     });
+    window.addEventListener("focus", processAllImages);
     console.log("[Gemini Watermark Remover] MutationObserver active");
   };
   async function processImageBlob(blob) {
-    const blobUrl = URL.createObjectURL(blob);
-    const img = await loadImage(blobUrl);
-    const canvas = await engine.removeWatermarkFromImage(img);
-    URL.revokeObjectURL(blobUrl);
-    return canvasToBlob(canvas);
+    // console.log("[Gemini Watermark Remover] processImageBlob called with blob:", blob);
+    try {
+      const blobUrl = URL.createObjectURL(blob);
+      // console.log("[Gemini Watermark Remover] processImageBlob object URL created:", blobUrl);
+      
+      const img = await loadImage(blobUrl);
+      // console.log("[Gemini Watermark Remover] processImageBlob image loaded successfully, dimension:", img.width, "x", img.height);
+      
+      const canvas = await engine.removeWatermarkFromImage(img);
+      // console.log("[Gemini Watermark Remover] processImageBlob watermark removed, canvas generated:");
+      
+      URL.revokeObjectURL(blobUrl);
+      // console.log("[Gemini Watermark Remover] processImageBlob object URL revoked");
+      
+      const resultBlob = await canvasToBlob(canvas);
+      // console.log("[Gemini Watermark Remover] processImageBlob canvas converted back to blob successfully:", resultBlob);
+      
+      return resultBlob;
+    } catch (error) {
+      console.error("[Gemini Watermark Remover] processImageBlob error:", error);
+      throw error;
+    }
   }
-  var GEMINI_URL_PATTERN = /^https:\/\/lh3\.googleusercontent\.com\/rd-gg(?:-dl)?\/.+=s(?!0-d\?).*/;
+  var GEMINI_URL_PATTERN = /^https:\/\/lh3\.googleusercontent\.com\/(?:rd-)?gg(?:-dl)?\/.+=s(?!0-d\?).*/;
   var { fetch: origFetch } = unsafeWindow;
   unsafeWindow.fetch = async (...args) => {
+    console.log(`[Gemini Watermark Remover] Fetching: ${args[0]}`);
     const url = typeof args[0] === "string" ? args[0] : args[0]?.url;
     if (GEMINI_URL_PATTERN.test(url)) {
-      console.log("[Gemini Watermark Remover] Intercepting:", url);
+      console.log(`[Gemini Watermark Remover] Intercepting: ${shortenUrlForLog(url)}`);
       const origUrl = replaceWithNormalSize(url);
 
       if (processedImageCache.has(origUrl)) {
@@ -289,24 +319,35 @@
       else if (args[0]?.url) args[0].url = origUrl;
 
       const response = await origFetch(...args);
+      console.log('[Gemini Watermark Remover] Response status', response.status, response);
+
       if (!engine || !response.ok) return response;
 
       try {
         const task = (async () => {
-             const blob = await response.blob();
+             // Create another clone before getting the blob for processing
+             const blob = await response.clone().blob();
              return processImageBlob(blob);
         })();
 
         processedImageCache.set(origUrl, task);
         const processedBlob = await task;
+        const processedBlobUrl = URL.createObjectURL(processedBlob);
+        
+        console.log(`[Gemini Watermark Remover] Processing image via fetch: ${shortenUrlForLog(origUrl)} ->`, processedBlob);
+        console.log(`[Gemini Watermark Remover] Processed blob URL: ${processedBlobUrl}`);
 
-        return new Response(processedBlob, {
+        const finalResponse =  new Response(processedBlob, {
           status: response.status,
           statusText: response.statusText,
           headers: response.headers
         });
+        // Object.defineProperty(finalResponse, 'url', { value: processedBlobUrl})
+        console.log('[Gemini Watermark Remover] Final response', finalResponse);
+        return finalResponse
+        
       } catch (error) {
-        console.warn("[Gemini Watermark Remover] Processing failed:", error);
+        console.warn("[Gemini Watermark Remover] Processing failed, will retry on next request:", error);
         processedImageCache.delete(origUrl);
         return response;
       }
